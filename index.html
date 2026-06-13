@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Khon Kaen Oil Price Compare</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Khon Kaen daily pump watch</p>
+          <h1>Oil price compare</h1>
+        </div>
+        <div class="status-panel">
+          <span id="dataDate">Loading</span>
+          <span id="dataStatus">Starter data</span>
+        </div>
+      </header>
+
+      <section class="controls" aria-label="Price filters">
+        <label>
+          Fuel
+          <select id="fuelSelect"></select>
+        </label>
+        <label>
+          District
+          <select id="districtSelect"></select>
+        </label>
+        <label>
+          Sort
+          <select id="sortSelect">
+            <option value="price">Cheapest first</option>
+            <option value="brand">Brand name</option>
+            <option value="district">District</option>
+          </select>
+        </label>
+        <button id="refreshBtn" type="button" title="Try to refresh from configured sources">
+          Refresh
+        </button>
+        <button id="editBtn" type="button" title="Edit today data">
+          Edit data
+        </button>
+      </section>
+
+      <section class="summary-grid" aria-label="Today summary">
+        <article class="metric">
+          <span>Cheapest</span>
+          <strong id="cheapestValue">-</strong>
+          <small id="cheapestLabel">-</small>
+        </article>
+        <article class="metric">
+          <span>Highest</span>
+          <strong id="highestValue">-</strong>
+          <small id="highestLabel">-</small>
+        </article>
+        <article class="metric">
+          <span>Spread</span>
+          <strong id="spreadValue">-</strong>
+          <small>baht per litre</small>
+        </article>
+        <article class="metric">
+          <span>Stations shown</span>
+          <strong id="stationCount">0</strong>
+          <small>Khon Kaen entries</small>
+        </article>
+      </section>
+
+      <section class="board" aria-label="Fuel price comparison">
+        <div class="board-head">
+          <h2 id="boardTitle">Today prices</h2>
+          <p id="boardHint">Pump-specific entries for Khon Kaen province.</p>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Brand</th>
+                <th>Station</th>
+                <th>District</th>
+                <th class="num">Price</th>
+                <th class="num">Diff</th>
+                <th>Source</th>
+              </tr>
+            </thead>
+            <tbody id="priceRows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="brand-strip" aria-label="Brand comparison">
+        <div class="board-head">
+          <h2>Brand average</h2>
+          <p>Average shown for the selected fuel and district filter.</p>
+        </div>
+        <div id="brandCards" class="brand-cards"></div>
+      </section>
+
+      <section id="editor" class="editor is-hidden" aria-label="Data editor">
+        <div class="board-head">
+          <h2>Edit today data</h2>
+          <p>Paste confirmed prices, then apply. The page stores your version in this browser.</p>
+        </div>
+        <textarea id="dataEditor" spellcheck="false"></textarea>
+        <div class="editor-actions">
+          <button id="applyDataBtn" type="button">Apply data</button>
+          <button id="resetDataBtn" type="button">Reset starter data</button>
+          <span id="editorMessage" role="status"></span>
+        </div>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
