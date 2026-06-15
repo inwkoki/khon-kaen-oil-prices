@@ -15,8 +15,8 @@ const FUEL_KEYS = {
 
 /** Bangkok retail → Khon Kaen provincial (no BKK maintenance tax, + transport) */
 const KHON_KAEN_OFFSET = {
-  "Gasohol 95": -4.85,
-  "Gasohol 91": -4.85
+  "Gasohol 95": -0,
+  "Gasohol 91": -0
 };
 
 const brandColors = {
