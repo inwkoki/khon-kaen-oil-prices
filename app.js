@@ -1,66 +1,22 @@
-const starterData = {
-  date: "2026-06-13",
-  province: "Khon Kaen",
-  status: "Starter sample - replace with confirmed daily station prices",
-  fuels: ["Gasohol 95", "Gasohol 91", "E20", "E85", "Diesel B7", "Premium Diesel"],
-  stations: [
-    {
-      brand: "PTT OR",
-      station: "PTT Station Mittraphap Khon Kaen",
-      district: "Mueang Khon Kaen",
-      source: "Manual daily check",
-      prices: { "Gasohol 95": 37.15, "Gasohol 91": 36.78, E20: 34.94, E85: 33.59, "Diesel B7": 31.94, "Premium Diesel": 43.94 }
-    },
-    {
-      brand: "Bangchak",
-      station: "Bangchak Mueang Khon Kaen",
-      district: "Mueang Khon Kaen",
-      source: "Manual daily check",
-      prices: { "Gasohol 95": 37.05, "Gasohol 91": 36.68, E20: 34.84, E85: 33.49, "Diesel B7": 31.94, "Premium Diesel": 43.84 }
-    },
-    {
-      brand: "Shell",
-      station: "Shell Mittraphap Khon Kaen",
-      district: "Mueang Khon Kaen",
-      source: "Manual daily check",
-      prices: { "Gasohol 95": 37.35, "Gasohol 91": 36.98, E20: 35.14, E85: null, "Diesel B7": 32.14, "Premium Diesel": 45.44 }
-    },
-    {
-      brand: "Caltex",
-      station: "Caltex Khon Kaen",
-      district: "Mueang Khon Kaen",
-      source: "Manual daily check",
-      prices: { "Gasohol 95": 37.24, "Gasohol 91": 36.87, E20: 35.03, E85: null, "Diesel B7": 32.04, "Premium Diesel": 44.74 }
-    },
-    {
-      brand: "PT",
-      station: "PT Ban Phai",
-      district: "Ban Phai",
-      source: "Manual daily check",
-      prices: { "Gasohol 95": 36.99, "Gasohol 91": 36.62, E20: 34.78, E85: null, "Diesel B7": 31.89, "Premium Diesel": 43.69 }
-    },
-    {
-      brand: "Susco",
-      station: "Susco Chum Phae",
-      district: "Chum Phae",
-      source: "Manual daily check",
-      prices: { "Gasohol 95": 37.09, "Gasohol 91": 36.72, E20: 34.88, E85: null, "Diesel B7": 31.94, "Premium Diesel": null }
-    },
-    {
-      brand: "PTT OR",
-      station: "PTT Station Nam Phong",
-      district: "Nam Phong",
-      source: "Manual daily check",
-      prices: { "Gasohol 95": 37.15, "Gasohol 91": 36.78, E20: 34.94, E85: 33.59, "Diesel B7": 31.94, "Premium Diesel": 43.94 }
-    },
-    {
-      brand: "Bangchak",
-      station: "Bangchak Phon",
-      district: "Phon",
-      source: "Manual daily check",
-      prices: { "Gasohol 95": 37.05, "Gasohol 91": 36.68, E20: 34.84, E85: null, "Diesel B7": 31.94, "Premium Diesel": 43.84 }
-    }
-  ]
+const BRAND_MAP = {
+  ptt: "PTT OR",
+  bcp: "Bangchak",
+  shell: "Shell",
+  caltex: "Caltex",
+  pt: "PT",
+  susco: "Susco",
+  pure: "Pure"
+};
+
+const FUEL_KEYS = {
+  "Gasohol 95": ["gasohol_95"],
+  "Gasohol 91": ["gasohol_91"]
+};
+
+/** Bangkok retail → Khon Kaen provincial (no BKK maintenance tax, + transport) */
+const KHON_KAEN_OFFSET = {
+  "Gasohol 95": -4.85,
+  "Gasohol 91": -4.85
 };
 
 const brandColors = {
@@ -69,269 +25,252 @@ const brandColors = {
   Shell: "#d73a2f",
   Caltex: "#284f9f",
   PT: "#c42131",
-  Susco: "#f09b22"
+  Susco: "#f09b22",
+  Pure: "#6b4c9a"
 };
 
 const state = {
-  data: loadData(),
-  fuel: "",
-  district: "All districts",
-  sort: "price"
+  data: null,
+  fuel: "Gasohol 95"
 };
 
 const els = {
   dataDate: document.querySelector("#dataDate"),
   dataStatus: document.querySelector("#dataStatus"),
   fuelSelect: document.querySelector("#fuelSelect"),
-  districtSelect: document.querySelector("#districtSelect"),
-  sortSelect: document.querySelector("#sortSelect"),
   refreshBtn: document.querySelector("#refreshBtn"),
-  editBtn: document.querySelector("#editBtn"),
   cheapestValue: document.querySelector("#cheapestValue"),
   cheapestLabel: document.querySelector("#cheapestLabel"),
   highestValue: document.querySelector("#highestValue"),
   highestLabel: document.querySelector("#highestLabel"),
   spreadValue: document.querySelector("#spreadValue"),
-  stationCount: document.querySelector("#stationCount"),
+  brandCount: document.querySelector("#brandCount"),
   boardTitle: document.querySelector("#boardTitle"),
   boardHint: document.querySelector("#boardHint"),
-  priceRows: document.querySelector("#priceRows"),
-  brandCards: document.querySelector("#brandCards"),
-  editor: document.querySelector("#editor"),
-  dataEditor: document.querySelector("#dataEditor"),
-  applyDataBtn: document.querySelector("#applyDataBtn"),
-  resetDataBtn: document.querySelector("#resetDataBtn"),
-  editorMessage: document.querySelector("#editorMessage")
+  priceList: document.querySelector("#priceList"),
+  dualGrid: document.querySelector("#dualGrid")
 };
 
 init();
 
-function init() {
-  state.fuel = state.data.fuels[0] || "";
-  renderControls();
-  render();
-
-  els.fuelSelect.addEventListener("change", (event) => {
-    state.fuel = event.target.value;
+async function init() {
+  renderFuelSelect();
+  await loadPrices();
+  els.fuelSelect.addEventListener("change", (e) => {
+    state.fuel = e.target.value;
     render();
   });
-
-  els.districtSelect.addEventListener("change", (event) => {
-    state.district = event.target.value;
-    render();
-  });
-
-  els.sortSelect.addEventListener("change", (event) => {
-    state.sort = event.target.value;
-    render();
-  });
-
-  els.editBtn.addEventListener("click", () => {
-    els.editor.classList.toggle("is-hidden");
-    els.dataEditor.value = JSON.stringify(state.data, null, 2);
-    els.editorMessage.textContent = "";
-  });
-
-  els.applyDataBtn.addEventListener("click", applyEditedData);
-  els.resetDataBtn.addEventListener("click", resetData);
-  els.refreshBtn.addEventListener("click", refreshFromStaticJson);
+  els.refreshBtn.addEventListener("click", () => loadPrices(true));
 }
 
-function loadData() {
-  const saved = localStorage.getItem("khonKaenOilPrices");
-  if (!saved) return structuredClone(starterData);
+function renderFuelSelect() {
+  els.fuelSelect.innerHTML = ["Gasohol 95", "Gasohol 91"]
+    .map((f) => `<option value="${f}">${f}</option>`)
+    .join("");
+  els.fuelSelect.value = state.fuel;
+}
 
+async function loadPrices(manual = false) {
+  els.dataStatus.textContent = manual ? "กำลังอัปเดต..." : "กำลังโหลด...";
   try {
-    return normalizeData(JSON.parse(saved));
+    const live = await fetchLivePrices();
+    if (live) {
+      state.data = live;
+      els.dataStatus.textContent = "อัปเดตจาก API แบรนด์หลัก";
+    } else {
+      state.data = await fetchStaticPrices();
+      els.dataStatus.textContent = "ใช้ข้อมูลสำรอง (data/prices.json)";
+    }
   } catch {
-    return structuredClone(starterData);
+    state.data = await fetchStaticPrices();
+    els.dataStatus.textContent = "ใช้ข้อมูลสำรอง";
   }
+  render();
 }
 
-function normalizeData(data) {
-  if (!data || !Array.isArray(data.stations)) {
-    throw new Error("Missing stations array.");
-  }
+async function fetchStaticPrices() {
+  const res = await fetch("data/prices.json", { cache: "no-store" });
+  return normalizeStatic(await res.json());
+}
 
-  const fuels = Array.isArray(data.fuels) && data.fuels.length
-    ? data.fuels
-    : Array.from(new Set(data.stations.flatMap((station) => Object.keys(station.prices || {}))));
+async function fetchLivePrices() {
+  const res = await fetch("https://api.chnwt.dev/thai-oil-api/latest", { cache: "no-store" });
+  if (!res.ok) return null;
+  const json = await res.json();
+  if (json.status !== "success" || !json.response?.stations) return null;
+  return normalizeLive(json.response);
+}
 
+function normalizeStatic(data) {
   return {
-    date: data.date || new Date().toISOString().slice(0, 10),
-    province: data.province || "Khon Kaen",
-    status: data.status || "User data",
-    fuels,
-    stations: data.stations.map((station) => ({
-      brand: station.brand || "Unknown",
-      station: station.station || "Unnamed station",
-      district: station.district || "Unknown district",
-      source: station.source || "Manual",
-      prices: station.prices || {}
+    date: data.date || today(),
+    district: data.district || "Mueang Khon Kaen",
+    brands: (data.brands || []).map((b) => ({
+      brand: b.brand,
+      prices: {
+        "Gasohol 95": b.prices?.["Gasohol 95"],
+        "Gasohol 91": b.prices?.["Gasohol 91"]
+      },
+      source: b.source || "Static"
     }))
   };
 }
 
-function renderControls() {
-  els.fuelSelect.innerHTML = state.data.fuels
-    .map((fuel) => `<option value="${escapeHtml(fuel)}">${escapeHtml(fuel)}</option>`)
-    .join("");
+function normalizeLive(response) {
+  const stations = response.stations;
+  const dateStr = response.date || today();
+  const brands = [];
 
-  const districts = ["All districts", ...Array.from(new Set(state.data.stations.map((station) => station.district))).sort()];
-  els.districtSelect.innerHTML = districts
-    .map((district) => `<option value="${escapeHtml(district)}">${escapeHtml(district)}</option>`)
-    .join("");
-  els.fuelSelect.value = state.fuel;
-  els.districtSelect.value = state.district;
+  for (const [key, label] of Object.entries(BRAND_MAP)) {
+    const station = stations[key];
+    if (!station) continue;
+
+    const prices = {};
+    for (const [fuel, keys] of Object.entries(FUEL_KEYS)) {
+      const raw = keys.map((k) => station[k]?.price).find((p) => p != null);
+      if (raw != null) {
+        const base = parseFloat(raw);
+        prices[fuel] = round2(base + KHON_KAEN_OFFSET[fuel]);
+      }
+    }
+
+    if (prices["Gasohol 95"] != null || prices["Gasohol 91"] != null) {
+      brands.push({
+        brand: label,
+        prices,
+        source: "thai-oil-api + KK provincial"
+      });
+    }
+  }
+
+  return {
+    date: parseThaiDate(dateStr) || today(),
+    district: "Mueang Khon Kaen",
+    brands: brands.sort((a, b) => comparePrices(a.prices["Gasohol 95"], b.prices["Gasohol 95"]))
+  };
+}
+
+function parseThaiDate(str) {
+  const m = str.match(/(\d{1,2})\s+(\S+)\s+(\d{4})/);
+  if (!m) return null;
+  const months = {
+    มกราคม: 1, กุมภาพันธ์: 2, มีนาคม: 3, เมษายน: 4,
+    พฤษภาคม: 5, มิถุนายน: 6, กรกฎาคม: 7, สิงหาคม: 8,
+    กันยายน: 9, ตุลาคม: 10, พฤศจิกายน: 11, ธันวาคม: 12
+  };
+  const day = parseInt(m[1], 10);
+  const month = months[m[2]];
+  const year = parseInt(m[3], 10) - 543;
+  if (!month) return null;
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
 function render() {
-  const rows = getRows();
-  const pricedRows = rows.filter((row) => typeof row.price === "number");
-  const cheapest = pricedRows[0];
-  const highest = pricedRows[pricedRows.length - 1];
+  if (!state.data) return;
+
+  const rows = getSortedRows(state.fuel);
+  const priced = rows.filter((r) => typeof r.price === "number");
+  const cheapest = priced[0];
+  const highest = priced[priced.length - 1];
   const spread = cheapest && highest ? highest.price - cheapest.price : null;
 
-  els.dataDate.textContent = `Date: ${state.data.date}`;
-  els.dataStatus.textContent = state.data.status;
-  els.boardTitle.textContent = `${state.fuel} in ${state.district === "All districts" ? state.data.province : state.district}`;
-  els.boardHint.textContent = `${pricedRows.length} priced entries, ${rows.length - pricedRows.length} unavailable for this fuel.`;
+  els.dataDate.textContent = `วันที่ ${formatDisplayDate(state.data.date)}`;
+  els.boardTitle.textContent = `${state.fuel} — อำเภอเมืองขอนแก่น`;
+  els.boardHint.textContent = `${priced.length} แบรนด์ · เรียงจากถูกไปแพง`;
 
-  els.cheapestValue.textContent = cheapest ? formatPrice(cheapest.price) : "-";
-  els.cheapestLabel.textContent = cheapest ? `${cheapest.brand} - ${cheapest.station}` : "-";
-  els.highestValue.textContent = highest ? formatPrice(highest.price) : "-";
-  els.highestLabel.textContent = highest ? `${highest.brand} - ${highest.station}` : "-";
-  els.spreadValue.textContent = spread === null ? "-" : spread.toFixed(2);
-  els.stationCount.textContent = rows.length;
+  els.cheapestValue.textContent = cheapest ? formatPrice(cheapest.price) : "—";
+  els.cheapestLabel.textContent = cheapest?.brand ?? "—";
+  els.highestValue.textContent = highest ? formatPrice(highest.price) : "—";
+  els.highestLabel.textContent = highest?.brand ?? "—";
+  els.spreadValue.textContent = spread == null ? "—" : spread.toFixed(2);
+  els.brandCount.textContent = priced.length;
 
-  renderTable(rows, cheapest);
-  renderBrandCards(pricedRows);
+  renderPriceList(rows, cheapest);
+  renderDualGrid();
 }
 
-function getRows() {
-  const rows = state.data.stations
-    .filter((station) => state.district === "All districts" || station.district === state.district)
-    .map((station) => ({
-      ...station,
-      price: station.prices[state.fuel]
-    }));
-
-  return rows.sort((a, b) => {
-    if (state.sort === "brand") return a.brand.localeCompare(b.brand) || comparePrices(a.price, b.price);
-    if (state.sort === "district") return a.district.localeCompare(b.district) || comparePrices(a.price, b.price);
-    return comparePrices(a.price, b.price);
-  });
+function getSortedRows(fuel) {
+  return state.data.brands
+    .map((b) => ({ ...b, price: b.prices[fuel] }))
+    .sort((a, b) => comparePrices(a.price, b.price));
 }
 
-function comparePrices(a, b) {
-  const left = typeof a === "number" ? a : Number.POSITIVE_INFINITY;
-  const right = typeof b === "number" ? b : Number.POSITIVE_INFINITY;
-  return left - right;
-}
-
-function renderTable(rows, cheapest) {
-  els.priceRows.innerHTML = rows.map((row) => {
+function renderPriceList(rows, cheapest) {
+  els.priceList.innerHTML = rows.map((row, i) => {
     const hasPrice = typeof row.price === "number";
     const diff = hasPrice && cheapest ? row.price - cheapest.price : null;
-    const diffClass = diff === 0 ? "diff-low" : "diff-high";
+    const rank = i + 1;
+    const color = brandColors[row.brand] || "#647084";
 
     return `
-      <tr>
-        <td>
-          <span class="brand-pill">
-            <span class="swatch" style="background:${brandColors[row.brand] || "#647084"}"></span>
-            ${escapeHtml(row.brand)}
+      <article class="price-row ${rank === 1 ? "is-best" : ""}" style="--brand:${color}">
+        <div class="rank">${rank}</div>
+        <div class="brand-block">
+          <span class="swatch"></span>
+          <div>
+            <strong class="brand-name">${escapeHtml(row.brand)}</strong>
+            <span class="source">${escapeHtml(row.source)}</span>
+          </div>
+        </div>
+        <div class="price-block">
+          <span class="price">${hasPrice ? formatPrice(row.price) : "N/A"}</span>
+          <span class="diff ${diff === 0 ? "diff-best" : "diff-more"}">
+            ${diff == null ? "—" : diff === 0 ? "ถูกที่สุด" : `+${diff.toFixed(2)} บาท`}
           </span>
-        </td>
-        <td>${escapeHtml(row.station)}</td>
-        <td>${escapeHtml(row.district)}</td>
-        <td class="num price">${hasPrice ? formatPrice(row.price) : "N/A"}</td>
-        <td class="num ${diffClass}">${diff === null ? "-" : diff === 0 ? "Best" : `+${diff.toFixed(2)}`}</td>
-        <td class="source">${escapeHtml(row.source)}</td>
-      </tr>
+        </div>
+      </article>
+    `;
+  }).join("") || "<p class='empty'>ไม่มีข้อมูลราคา</p>";
+}
+
+function renderDualGrid() {
+  const fuels = ["Gasohol 95", "Gasohol 91"];
+  els.dualGrid.innerHTML = fuels.map((fuel) => {
+    const rows = getSortedRows(fuel);
+    return `
+      <div class="dual-card">
+        <h3>${fuel}</h3>
+        <ol class="mini-list">
+          ${rows.map((r, i) => `
+            <li>
+              <span class="mini-rank">${i + 1}</span>
+              <span class="mini-brand" style="color:${brandColors[r.brand] || "#18212f"}">${escapeHtml(r.brand)}</span>
+              <span class="mini-price">${typeof r.price === "number" ? r.price.toFixed(2) : "—"}</span>
+            </li>
+          `).join("")}
+        </ol>
+      </div>
     `;
   }).join("");
 }
 
-function renderBrandCards(rows) {
-  const grouped = new Map();
-  rows.forEach((row) => {
-    const bucket = grouped.get(row.brand) || [];
-    bucket.push(row.price);
-    grouped.set(row.brand, bucket);
-  });
-
-  els.brandCards.innerHTML = Array.from(grouped.entries()).map(([brand, prices]) => {
-    const average = prices.reduce((sum, price) => sum + price, 0) / prices.length;
-    const min = Math.min(...prices);
-    return `
-      <article class="brand-card">
-        <span class="brand-pill">
-          <span class="swatch" style="background:${brandColors[brand] || "#647084"}"></span>
-          ${escapeHtml(brand)}
-        </span>
-        <strong>${formatPrice(average)}</strong>
-        <small>Best ${formatPrice(min)} across ${prices.length} station${prices.length === 1 ? "" : "s"}</small>
-      </article>
-    `;
-  }).join("") || "<p>No priced entries for this filter.</p>";
+function comparePrices(a, b) {
+  const left = typeof a === "number" ? a : Infinity;
+  const right = typeof b === "number" ? b : Infinity;
+  return left - right;
 }
 
-async function refreshFromStaticJson() {
-  els.dataStatus.textContent = "Checking data/prices.json";
-  try {
-    const response = await fetch("data/prices.json", { cache: "no-store" });
-    if (!response.ok) throw new Error("No local JSON source found.");
-    state.data = normalizeData(await response.json());
-    state.fuel = state.data.fuels.includes(state.fuel) ? state.fuel : state.data.fuels[0];
-    state.district = "All districts";
-    saveData();
-    renderControls();
-    render();
-  } catch (error) {
-    els.dataStatus.textContent = "Refresh unavailable - using browser data";
-    els.boardHint.textContent = `${error.message} Open through a local server for JSON refresh.`;
-  }
+function formatPrice(v) {
+  return `${v.toFixed(2)} ฿`;
 }
 
-function applyEditedData() {
-  try {
-    state.data = normalizeData(JSON.parse(els.dataEditor.value));
-    state.fuel = state.data.fuels.includes(state.fuel) ? state.fuel : state.data.fuels[0];
-    state.district = "All districts";
-    saveData();
-    renderControls();
-    render();
-    els.editorMessage.textContent = "Applied.";
-  } catch (error) {
-    els.editorMessage.textContent = error.message;
-  }
+function formatDisplayDate(d) {
+  const [y, m, day] = d.split("-");
+  return `${day}/${m}/${y}`;
 }
 
-function resetData() {
-  localStorage.removeItem("khonKaenOilPrices");
-  state.data = structuredClone(starterData);
-  state.fuel = state.data.fuels[0];
-  state.district = "All districts";
-  els.dataEditor.value = JSON.stringify(state.data, null, 2);
-  renderControls();
-  render();
-  els.editorMessage.textContent = "Reset.";
+function today() {
+  return new Date().toISOString().slice(0, 10);
 }
 
-function saveData() {
-  localStorage.setItem("khonKaenOilPrices", JSON.stringify(state.data));
+function round2(n) {
+  return Math.round(n * 100) / 100;
 }
 
-function formatPrice(value) {
-  return `${value.toFixed(2)} THB`;
-}
-
-function escapeHtml(value) {
-  return String(value)
+function escapeHtml(v) {
+  return String(v)
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+    .replaceAll('"', "&quot;");
 }

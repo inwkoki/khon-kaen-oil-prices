@@ -1,0 +1,40 @@
+{
+  "date": "2026-06-15",
+  "province": "Khon Kaen",
+  "district": "Mueang Khon Kaen",
+  "status": "Khon Kaen provincial retail reference — Gasohol 91 & 95",
+  "fuels": ["Gasohol 95", "Gasohol 91"],
+  "note": "Brand prices for Mueang Khon Kaen district. Provincial retail excludes Bangkok maintenance tax; Shell typically +0.50 vs other brands.",
+  "brands": [
+    {
+      "brand": "Bangchak",
+      "prices": { "Gasohol 95": 37.15, "Gasohol 91": 36.78 },
+      "source": "Bangchak API + KK provincial"
+    },
+    {
+      "brand": "PTT OR",
+      "prices": { "Gasohol 95": 37.15, "Gasohol 91": 36.78 },
+      "source": "PTT OR provincial"
+    },
+    {
+      "brand": "Caltex",
+      "prices": { "Gasohol 95": 37.15, "Gasohol 91": 36.78 },
+      "source": "Brand retail + KK provincial"
+    },
+    {
+      "brand": "PT",
+      "prices": { "Gasohol 95": 37.15, "Gasohol 91": 36.78 },
+      "source": "Brand retail + KK provincial"
+    },
+    {
+      "brand": "Susco",
+      "prices": { "Gasohol 95": 37.15, "Gasohol 91": 36.78 },
+      "source": "Brand retail + KK provincial"
+    },
+    {
+      "brand": "Shell",
+      "prices": { "Gasohol 95": 37.65, "Gasohol 91": 37.28 },
+      "source": "Brand retail + KK provincial"
+    }
+  ]
+}
